@@ -1,0 +1,32 @@
+﻿@startuml
+title Контекстная диаграмма АгроТех мониторинг животноводства (централизованная)
+
+top to bottom direction
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' === Участники ==='
+Person(operator, "Персонал", "Мониторинг состояния животных")
+Person(admin, "Администраторы", "Управление системой")
+
+'=== Системы ==='
+System(central_server, "AгроТех мониторинг скота", "Система выполняет мониторинг состояния скота, управляет системами кормления скота, оповещает о нештатных ситуациях")
+
+'=== Внешние системы ==='
+System_Ext(notification_system, "Система уведомлений", "Внешняя система отправки уведомлений")
+System_Ext(device_controllers, "Система управления устройствами", "Внешняя система управления устройствами на ферме")
+System_Ext(metrics_consumer, "Система потребления метрик", "Внешняя система потребления метрик")
+System_Ext(client, "Клиенты системы", "Клиенты системы веб или мобильные приложения")
+System_Ext(notification_system, "Система уведомлений", "Внешняя система отправки уведомлений")
+
+'=== Отношения ==='
+Rel(operator, central_server, "Пользуется системой")
+Rel(admin,central_server,"Управляет системой")
+
+Rel(central_server,notification_system,"Отправляет данные на центральный сервер")
+Rel(central_server,metrics_consumer,"Предоставляет метрики потребителям")
+Rel(central_server,device_controllers,"Управляет устройствами")
+
+Rel(client, central_server,"Взаимодействует с системой через API")
+
+@enduml
