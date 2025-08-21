@@ -1,0 +1,98 @@
+﻿@startuml
+title Контекстная диаграмма АгроТех мониторинг животноводства (распределенная)
+
+top to bottom direction
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' === Участники ==='
+Person(operator, "Персонал", "Мониторинг состояния животных")
+Person(admin, "Администраторы", "Управление системой")
+
+' === Cистемы ==='
+Container_Boundary(sa_web_app, "Веб-приложение АгроТех сервер-агент мониторинга животноводства") {
+  Container(sa_user_controller, "Контроллер пользователей", "C#", "Управление пользователями: добавление, обновление, удаление")
+  Container(sa_security_component, "Компонент безопасности", "C#", "Компонент безопасности авторизация\аутентификация")
+  Container(sa_notification_component, "Компонент уведомлений", "C#", "Компонент отправки уведомлений")
+  Container(sa_broker_component, "Компонент работы с брокером сообщений", "C#", "Отправляет и получает сообщений из брокера сообщений")
+  Container(sa_live_stock_monitoring, "Компонент мониторинга животноводства", "C#", "Анализирует поток видео данных, высылает уведомления при нештатных ситуациях")
+  Container(sa_feed_device_monitoring, "Компонент мониторинга и управления устройствами кормления", "C#", "Анализирует состояние устройств кормления животных, отправляет команды и уведомления")
+  Container(sa_metrics_component, "Компонент сбора метрик", "C#", "Отправляет метрики приложения")
+  ContainerDb(sa_database, "База данных", "PostgreSQL", "Хранит данные")
+}
+
+Container_Boundary(cs_web_app, "Веб-приложение АгроТех центральный-сервер мониторинга животноводства") {
+   Container(cs_user_controller, "Контроллер пользователей", "C#", "Управление пользователями: добавление, обновление, удаление")
+   Container(cs_security_component, "Компонент безопасности", "C#", "Компонент безопасности авторизация\аутентификация")
+   Container(cs_notification_component, "Компонент уведомлений", "C#", "Компонент отправки уведомлений")
+   Container(cs_broker_component, "Компонент работы с брокером сообщений", "C#", "Отправляет и получает сообщений из брокера сообщений")
+   Container(cs_metrics_component, "Компонент сбора метрик", "C#", "Отправляет метрики приложения"
+   ContainerDb(cs_database, "База данных", "PostgreSQL", "Хранит данные")
+}
+
+' === Внешние системы ==='
+System_Ext(device_controllers, "Система управления устройствами", "Внешняя система управления устройствами на ферме")
+System_Ext(iot_system, "Система данных с устройств", "Внешняя система предоставления данных с устройств")
+System_Ext(metrics_consumer, "Система потребления метрик", "Внешняя система потребления метрик")
+System_Ext(client, "Клиенты системы", "Клиенты системы веб или мобильные приложения")
+System_Ext(notification_system, "Система уведомлений", "Внешняя система отправки уведомлений")
+ContainerQueue_Ext(service_bus,"Apache Kafka", "Передает данные от публикатора подписчику")
+
+' === Отношения ==='
+Rel(cs_user_controller, cs_security_component, "Использует")
+Rel(cs_user_controller, cs_metrics_component, "Использует")
+Rel(cs_user_controller, cs_database, "Читает\записывает данные SQL\TCP")
+Rel(cs_user_controller, cs_notification_component, "Использует")
+Rel(cs_user_controller, cs_broker_component, "Использует")
+
+Rel(cs_broker_component, service_bus, "Публикует данные и сообщения")
+
+Rel(cs_metrics_component, metrics_consumer, "Публикует данные")
+
+Rel(cs_notification_component, notification_system, "Отправляет уведомления")
+
+Rel(cs_security_component, cs_database, "Читает\записывает данные SQL\TCP")
+
+
+Rel(sa_user_controller, sa_security_component, "Использует")
+Rel(sa_user_controller, sa_metrics_component, "Использует")
+Rel(sa_user_controller, sa_database, "Читает\записывает данные SQL\TCP")
+Rel(sa_user_controller, sa_notification_component, "Использует")
+Rel(sa_user_controller, sa_broker_component, "Использует")
+
+Rel(sa_security_component, sa_database, "Читает\записывает данные SQL\TCP")
+
+Rel(sa_notification_component, notification_system, "Отправляет уведомления")
+
+Rel(sa_broker_component, service_bus, "Публикует данные и сообщения")
+
+Rel(sa_feed_device_monitoring, device_controllers, "Управляет системами кормления (HTTPS\JSON)")
+Rel(sa_feed_device_monitoring, sa_notification_component, "Использует")
+Rel(sa_feed_device_monitoring, sa_metrics_component, "Использует")
+Rel(sa_feed_device_monitoring, sa_broker_component, "Использует")
+Rel(sa_feed_device_monitoring, sa_database, "Читает\записывает данные SQL\TCP")
+
+Rel(sa_live_stock_monitoring, sa_notification_component, "Использует")
+Rel(sa_live_stock_monitoring, sa_metrics_component, "Использует")
+Rel(sa_live_stock_monitoring, sa_broker_component, "Использует")
+Rel(sa_live_stock_monitoring, sa_database, "Читает\записывает данные SQL\TCP")
+
+Rel(iot_system, sa_feed_device_monitoring, "Предоставляет поток данных с камер и устройств (gRPC)")
+Rel(iot_system, sa_live_stock_monitoring, "Предоставляет поток данных с камер и устройств (gRPC)")
+
+Rel(sa_metrics_component, metrics_consumer, "Публикует данные")
+
+
+Rel(admin, cs_web_app,"Управляет системой (REST API)")
+Rel(admin, sa_web_app,"Управляет системой (REST API)")
+
+Rel(operator, cs_web_app, "Пользуется системой (REST API)")
+Rel(operator, sa_web_app, "Пользуется системой (REST API)")
+
+Rel(client, cs_web_app, "Взаимодействует с системой через API (REST API)")
+Rel(client, sa_web_app, "Взаимодействует с системой через API (REST API)")
+
+
+
+
+@enduml

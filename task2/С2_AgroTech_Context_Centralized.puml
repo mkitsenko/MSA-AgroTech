@@ -1,0 +1,42 @@
+﻿@startuml
+title Контекстная диаграмма АгроТех мониторинг животноводства (распределенная)
+
+top to bottom direction
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' === Участники ==='
+Person(operator, "Персонал", "Мониторинг состояния животных")
+Person(admin, "Администраторы", "Управление системой")
+
+' === Системы ==='
+Container_Boundary(central_system, "АгроТех центральный-сервер мониторинга животноводства") {
+  Container(cs_web_app, "Веб-приложение", "C#", "Обрабатывает и синхронизирует данные с серверов-агентов")
+  ContainerDb(cs_database, "База данных", "MySQL", "Хранит данные")
+  ContainerQueue(service_bus, "Брокер сообщений", "RabbitMQ", "Передает события и данные")
+}
+
+' === Внешние системы ==='
+System_Ext(device_controllers, "Система управления устройствами", "Внешняя система управления устройствами на ферме")
+System_Ext(iot_system, "Система данных с устройств", "Внешняя система предоставления данных с устройств")
+System_Ext(metrics_consumer, "Система потребления метрик", "Внешняя система потребления метрик")
+System_Ext(client, "Клиенты системы", "Клиенты системы веб или мобильные приложения")
+System_Ext(notification_system, "Система уведомлений", "Внешняя система отправки уведомлений")
+
+' === Отношения ==='
+Rel(iot_system, cs_web_app,"Предоставляет поток данных с устройств для анализа (gRPC)")
+
+Rel(cs_web_app, cs_database,"Читает\записывает данные SQL\TCP")
+Rel(cs_web_app, metrics_consumer,"Публикует метрики в Prometheus (REST API)")
+Rel(cs_web_app, notification_system,"Отправляет уведомления")
+Rel(cs_web_app, service_bus,"Отправляет команды управления устройствами")
+
+Rel(service_bus, device_controllers, "Отправляет команды управления устройствами")
+
+Rel(admin, cs_web_app,"Управляет системой (REST API)")
+
+Rel(operator, cs_web_app, "Пользуется системой (REST API)")
+
+Rel(client, cs_web_app, "Взаимодействует с системой через API (REST API)")
+
+@enduml
