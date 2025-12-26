@@ -1,0 +1,132 @@
+﻿@startuml
+title Контекстная диаграмма АгроТех мониторинг животноводства (распределенная)
+
+top to bottom direction
+
+class User {
+  +String name
+  +String email
+  +List<UserRole> memberships
+  +void register()
+  +void login()
+}
+
+class UserRole {
+  +String type
+  +Date startDate
+  +Date endDate
+  +void activate()
+  +void cancel()
+}
+
+class LivestockEventType{
+    +Int id
+    +String Name
+}
+
+class LivestockEvent {
+    +Int id
+    +DateTime timestamp
+    +LivestockEventType eventType
+}
+
+class Livestock{
+    +Int id
+    +String status
+}
+
+class Metric{
+    +Int metric_id
+    +String type
+    +String name
+}
+
+class MetricValues{
+    +Int id
+    +Int metric_id
+    +DateTime timestamp
+    +Decimal value
+}
+
+
+class Device{
+    +Int id
+    +String type
+    +String name
+    +String status
+}
+
+
+
+class UserController{
+    +SecurityService securityService
+    +NotificationService notificationService
+    +void Login(user_id, password)
+    +void Add(user)
+    +void Update(user_id, user)
+    +void Delete(user_id)
+}
+
+class NotificationService{
+    +void send()
+}
+
+class BrokerServiceConsumer{
+    +void consume()
+}
+
+class BrokerServiceProducer{
+    +void produce()
+}
+
+class SecurityService{
+    +void authenticate()
+    +void authorize()
+}
+
+
+class LivestockMonitoringService{
+    +NotificationService notificationService
+    +BrokerServiceConsumer dataConsumingService
+    +EventHandler eventOccured 
+    +void startMonitoring()
+    +void stopMonitoring()
+}
+
+class FeedDeviceMonitoringService{
+    EventHandler eventOccured
+    +void startMonitoring()
+    +void stopMonitoring()
+}
+
+class MetricService{
+    +void startCollecting()
+    +void stopCollecting()
+}
+
+User "1" -- "0..*" UserRole : has
+UserController -- User : uses
+UserController -- NotificationService : uses
+UserController -- SecurityService : uses
+UserController -- MetricService : uses
+
+LivestockEvent "1" -- "1" Livestock : has
+
+LivestockMonitoringService -- BrokerServiceConsumer : uses
+LivestockMonitoringService -- NotificationService : uses
+LivestockMonitoringService -- LivestockEvent : uses
+LivestockMonitoringService -- MetricService : uses
+
+FeedDeviceMonitoringService -- Device : uses
+FeedDeviceMonitoringService -- ExternalDeviceController : uses
+FeedDeviceMonitoringService -- MetricService : uses
+
+BrokerServiceConsumer -> ExternalMessageBroker: consumes
+
+LivestockEventType "1" -- "*" LivestockEvent : has
+
+Metric "1" -- "0..*" MetricValues : relation
+
+MetricService -- MetricValues : uses
+
+@enduml
